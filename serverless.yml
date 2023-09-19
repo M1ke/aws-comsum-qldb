@@ -1,0 +1,107 @@
+service: comsum-qldb
+
+# Create an optimized package for our functions 
+package:
+  individually: true
+
+useDotenv: true
+configValidationMode: error
+
+plugins:
+  - serverless-plugin-typescript
+
+provider:
+  name: aws
+  region: ${env:AWS_REGION}
+  runtime: nodejs18.x
+  environment:
+    LEDGER: ${env:LEDGER}
+    TABLE: ${env:TABLE}
+  iam:
+    role:
+      managedPolicies:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      statements:
+        - Effect: Allow
+          Action: 'qldb:*'
+          Resource: '*'
+      name: comsum-lambda
+
+functions:
+  post:
+    handler: src/post.post
+    events:
+      - httpApi:
+          path: /data
+          method: POST
+  digest:
+    handler: src/digest.get
+  stream:
+    handler: src/stream.read
+    events:
+      - stream:
+          arn: ${env:KINESIS_ARN}
+          batchSize: 1
+
+#resources:
+#  Resources:
+#    Ledger:
+#      Type: "AWS::QLDB::Ledger"
+#      Properties:
+#        Name: ${env:LEDGER}
+#        DeletionProtection: true
+#        PermissionsMode: "ALLOW_ALL"
+#    Stream:
+#      Type: "AWS::QLDB::Stream"
+#      Properties:
+#        Name: ${env:LEDGER}
+#        DeletionProtection: true
+#        PermissionsMode: "ALLOW_ALL"
+#    StreamKinesis:
+#      Type: "AWS::Kinesis::Stream"
+#      Properties:
+#        Name: !Ref Ledger
+#        RetentionPeriodHours: 24
+#        StreamEncryption:
+#          EncryptionType: "NONE"
+#        ShardCount: 4
+#    RDSDBSubnetGroup:
+#      Type: "AWS::RDS::DBSubnetGroup"
+#      Properties:
+#        DBSubnetGroupDescription: "default"
+#        DBSubnetGroupName: "default"
+#        SubnetIds:
+#          - "subnet-c1bf6389"
+#          - "subnet-c39759a5"
+#          - "subnet-77262e2c"
+#    ReadDatabase:
+#      Type: "AWS::RDS::DBCluster"
+#      Properties:
+#        AvailabilityZones:
+#          - !Sub "${AWS::Region}c"
+#          - !Sub "${AWS::Region}b"
+#          - !Sub "${AWS::Region}a"
+#        BackupRetentionPeriod: 1
+#        DBClusterIdentifier: ${env:READ_DB_NAME}
+#        DBClusterParameterGroupName: "default.aurora-mysql5.7"
+#        DBSubnetGroupName: "default"
+#        Engine: "aurora-mysql"
+#        Port: 3306
+#        MasterUsername: "admin"
+#        MasterUserPassword: "REPLACEME"
+#        PreferredBackupWindow: "00:42-01:12"
+#        PreferredMaintenanceWindow: "mon:23:38-tue:00:08"
+#        VpcSecurityGroupIds:
+#          - "sg-981c5ae2"
+#        StorageEncrypted: true
+#        KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:272094006224:key/16c141d6-c015-4fe6-9bd1-19de69ff2f68"
+#        EngineVersion: "5.7.mysql_aurora.2.08.3"
+#        EnableIAMDatabaseAuthentication: false
+#        EngineMode: "serverless"
+#        ScalingConfiguration:
+#          MinCapacity: 1
+#          MaxCapacity: 1
+#          AutoPause: true
+#          SecondsUntilAutoPause: 300
+#        DeletionProtection: false
+#        EnableHttpEndpoint: false
