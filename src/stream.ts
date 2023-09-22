@@ -43,13 +43,13 @@ interface QldbBlockSummary extends QldbRecord {
     recordType: typeof RecordBlockSummary
     transactionId: string
     blockHash: string,
-    transactionInfo: {
+    transactionInfo?: {
         statements: {statement: string, startTime: string, statementDigest: string}[],
-        documents: Record<string, { tableName: string, tableId: string, statements: []}>
+        documents?: Record<string, { tableName: string, tableId: string, statements: []}>
     }
     revisionSummaries: {
       hash: string
-      documentId: string
+      documentId?: string
     }[]
 }
 
@@ -73,10 +73,14 @@ const handleQldbRevisionDetails = (details: QldbRevisionDetails) => {
 };
 
 const handleQldbBlockSummary = (summary: QldbBlockSummary) => {
-    const { transactionInfo: { documents, statements} } = summary
+    const { transactionInfo = null } = summary
 
-    console.log('The following statements were run', statements)
-    console.log('The following documents were modified', documents)
+    if (transactionInfo) {
+        const {documents, statements} = transactionInfo
+
+        console.log('The following statements were run', statements)
+        documents && console.log('The following documents were modified', documents)
+    }
 };
 
 const handleQldbData = (qldbRecord: QldbRecord): void => {
@@ -141,7 +145,11 @@ const processRecords = async (records: DeaggRecord[]) => {
 
             const qldbData = makeQldbType(ionRecord)
 
-            handleQldbData(qldbData)
+            try {
+                handleQldbData(qldbData)
+            } catch (e) {
+                console.error('Got error processing data', e, qldbData)
+            }
         }),
     );
 };
